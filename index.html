@@ -100,7 +100,7 @@
 
         .error-content {
             text-align: center;
-            max-width: 500px;
+            max-width: 600px;
             padding: 2rem;
         }
 
@@ -119,6 +119,13 @@
         .error-message {
             color: var(--text-secondary);
             margin-bottom: 2rem;
+            white-space: pre-wrap;
+            text-align: left;
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
         }
 
         .retry-btn {
@@ -130,11 +137,61 @@
             cursor: pointer;
             font-size: 1rem;
             transition: all 0.3s ease;
+            margin-right: 1rem;
         }
 
         .retry-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px var(--shadow);
+        }
+
+        .debug-btn {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .debug-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+
+        .debug-panel.visible {
+            display: block;
+        }
+
+        .debug-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .debug-log {
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
         }
 
         /* Header */
@@ -411,7 +468,14 @@
                 Could not load story data. Please check that the data file exists and is properly formatted.
             </div>
             <button class="retry-btn" onclick="loadStoryData()">Try Again</button>
+            <button class="debug-btn" onclick="toggleDebugPanel()">Show Debug Info</button>
         </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debug-panel">
+        <div class="debug-title">Debug Information</div>
+        <div id="debug-content"></div>
     </div>
 
     <!-- Scroll Progress -->
@@ -428,6 +492,7 @@
                     <!-- Navigation will be auto-generated -->
                 </nav>
                 <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+                <button class="debug-btn" onclick="toggleDebugPanel()" style="margin-left: 0.5rem; padding: 0.5rem 1rem; font-size: 0.8rem;">Debug</button>
             </div>
         </div>
     </header>
@@ -459,6 +524,70 @@
         // Global variables
         let storyData = null;
         let currentChapter = 1;
+        let debugLogs = [];
+
+        // ===== DEBUG FUNCTIONS =====
+        function addDebugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLogs.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            console.log(`DEBUG ${type.toUpperCase()}:`, message);
+            updateDebugPanel();
+        }
+
+        function updateDebugPanel() {
+            const debugContent = document.getElementById('debug-content');
+            debugContent.innerHTML = debugLogs.slice(-20).map(log => 
+                `<div class="debug-log">${log}</div>`
+            ).join('');
+            
+            // Auto-scroll to bottom
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
+
+        function toggleDebugPanel() {
+            const debugPanel = document.getElementById('debug-panel');
+            debugPanel.classList.toggle('visible');
+        }
+
+        function runDiagnostics() {
+            addDebugLog('Running diagnostics...');
+            
+            // Check current URL
+            addDebugLog(`Current URL: ${window.location.href}`);
+            addDebugLog(`Current origin: ${window.location.origin}`);
+            addDebugLog(`Current pathname: ${window.location.pathname}`);
+            
+            // Check if running locally or on server
+            const isLocal = window.location.protocol === 'file:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            addDebugLog(`Running locally: ${isLocal}`);
+            addDebugLog(`Running on localhost: ${isLocalhost}`);
+            
+            if (isLocal) {
+                addDebugLog('WARNING: Running from file:// protocol. CORS restrictions may prevent JSON loading.', 'warning');
+                addDebugLog('SOLUTION: Use a local web server (python -m http.server, Live Server extension, etc.)', 'warning');
+            }
+            
+            // Check fetch API support
+            if (typeof fetch === 'undefined') {
+                addDebugLog('ERROR: Fetch API not supported', 'error');
+            } else {
+                addDebugLog('Fetch API is supported');
+            }
+            
+            // Try to determine file path
+            const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            const fullDataURL = window.location.origin + basePath + STORY_DATA_URL;
+            addDebugLog(`Expected JSON file location: ${fullDataURL}`);
+            
+            return {
+                isLocal,
+                isLocalhost,
+                fullDataURL,
+                hasJsonSupport: typeof JSON !== 'undefined'
+            };
+        }
 
         // ===== DATA LOADING FUNCTIONS =====
         async function loadStoryData() {
@@ -466,31 +595,92 @@
             const errorScreen = document.getElementById('error-screen');
             const errorMessage = document.getElementById('error-message');
             
+            // Clear previous logs and run diagnostics
+            debugLogs = [];
+            const diagnostics = runDiagnostics();
+            
             // Show loading screen
             loadingScreen.classList.remove('hidden');
             errorScreen.style.display = 'none';
             
             try {
-                console.log('Loading story data from:', STORY_DATA_URL);
-                const response = await fetch(STORY_DATA_URL);
+                addDebugLog(`Attempting to load story data from: ${STORY_DATA_URL}`);
                 
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch story data: ${response.status} ${response.statusText}`);
+                // Try different potential paths
+                const possiblePaths = [
+                    STORY_DATA_URL,
+                    `./${STORY_DATA_URL}`,
+                    `../${STORY_DATA_URL}`,
+                    `//${STORY_DATA_URL}`
+                ];
+                
+                let response = null;
+                let usedPath = null;
+                
+                for (const path of possiblePaths) {
+                    try {
+                        addDebugLog(`Trying path: ${path}`);
+                        response = await fetch(path);
+                        if (response.ok) {
+                            usedPath = path;
+                            addDebugLog(`SUCCESS: Found file at ${path}`, 'success');
+                            break;
+                        } else {
+                            addDebugLog(`Failed to load from ${path}: ${response.status} ${response.statusText}`, 'warning');
+                        }
+                    } catch (pathError) {
+                        addDebugLog(`Error trying path ${path}: ${pathError.message}`, 'warning');
+                    }
                 }
                 
-                const data = await response.json();
+                if (!response || !response.ok) {
+                    throw new Error(`Failed to fetch story data from any of the attempted paths:\n${possiblePaths.join('\n')}\n\nLast response: ${response ? `${response.status} ${response.statusText}` : 'No response'}`);
+                }
+                
+                addDebugLog(`Reading JSON content from ${usedPath}...`);
+                const responseText = await response.text();
+                addDebugLog(`Raw response length: ${responseText.length} characters`);
+                addDebugLog(`First 100 characters: ${responseText.substring(0, 100)}...`);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    addDebugLog('JSON parsing successful', 'success');
+                } catch (parseError) {
+                    addDebugLog(`JSON parsing failed: ${parseError.message}`, 'error');
+                    throw new Error(`Invalid JSON format: ${parseError.message}\n\nResponse preview:\n${responseText.substring(0, 200)}...`);
+                }
                 
                 // Validate data structure
-                if (!data.title || !data.chapters || !Array.isArray(data.chapters)) {
-                    throw new Error('Invalid story data format. Expected object with "title" and "chapters" array.');
+                addDebugLog('Validating data structure...');
+                if (!data.title) {
+                    throw new Error('Missing required field: "title"');
+                }
+                if (!data.chapters) {
+                    throw new Error('Missing required field: "chapters"');
+                }
+                if (!Array.isArray(data.chapters)) {
+                    throw new Error('"chapters" must be an array');
+                }
+                if (data.chapters.length === 0) {
+                    throw new Error('No chapters found in story data');
                 }
                 
-                if (data.chapters.length === 0) {
-                    throw new Error('No chapters found in story data.');
-                }
+                // Validate chapter structure
+                data.chapters.forEach((chapter, index) => {
+                    if (!chapter.number) {
+                        throw new Error(`Chapter ${index + 1} missing "number" field`);
+                    }
+                    if (!chapter.title) {
+                        throw new Error(`Chapter ${index + 1} missing "title" field`);
+                    }
+                    if (!chapter.content) {
+                        throw new Error(`Chapter ${index + 1} missing "content" field`);
+                    }
+                });
                 
                 storyData = data;
-                console.log('Story data loaded successfully:', storyData);
+                addDebugLog(`Story data loaded successfully: ${storyData.title} with ${storyData.chapters.length} chapters`, 'success');
                 
                 // Initialize the story
                 initializeStory();
@@ -501,10 +691,26 @@
                 }, 500);
                 
             } catch (error) {
-                console.error('Error loading story data:', error);
+                addDebugLog(`Error loading story data: ${error.message}`, 'error');
+                
+                let errorText = `Error: ${error.message}\n\n`;
+                errorText += `Debugging Information:\n`;
+                errorText += `- Current URL: ${window.location.href}\n`;
+                errorText += `- Expected file: ${STORY_DATA_URL}\n`;
+                errorText += `- Running locally: ${diagnostics.isLocal}\n`;
+                
+                if (diagnostics.isLocal) {
+                    errorText += `\n⚠️  COMMON ISSUE: You're running from file:// protocol\n`;
+                    errorText += `SOLUTION: Use a local web server instead:\n`;
+                    errorText += `• Python: python -m http.server\n`;
+                    errorText += `• Node.js: npx http-server\n`;
+                    errorText += `• VS Code: Live Server extension\n`;
+                }
+                
+                errorText += `\n📋 Recent debug logs:\n${debugLogs.slice(-10).join('\n')}`;
                 
                 // Show error screen
-                errorMessage.textContent = error.message;
+                errorMessage.textContent = errorText;
                 loadingScreen.classList.add('hidden');
                 errorScreen.style.display = 'flex';
             }
@@ -580,10 +786,12 @@
         // ===== INITIALIZATION FUNCTIONS =====
         function initializeStory() {
             if (!storyData) {
-                console.error('Cannot initialize story: no data loaded');
+                addDebugLog('Cannot initialize story: no data loaded', 'error');
                 return;
             }
 
+            addDebugLog('Initializing story interface...');
+            
             // Update page title and header
             document.title = storyData.title;
             document.getElementById('story-title').textContent = storyData.title;
@@ -604,7 +812,7 @@
             // Initialize interactions
             initializeInteractions();
             
-            console.log('Story initialized successfully');
+            addDebugLog('Story initialized successfully', 'success');
         }
 
         function initializeInteractions() {
@@ -715,9 +923,12 @@
 
         // Handle potential errors
         window.addEventListener('error', (e) => {
-            console.error('JavaScript error:', e.error);
+            addDebugLog(`JavaScript error: ${e.error}`, 'error');
         });
 
         window.addEventListener('unhandledrejection', (e) => {
-            console.error('Unhandled promise rejection:', e.reason);
+            addDebugLog(`Unhandled promise rejection: ${e.reason}`, 'error');
         });
+    </script>
+</body>
+</html>
