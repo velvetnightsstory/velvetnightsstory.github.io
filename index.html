@@ -39,6 +39,28 @@
             transition: all 0.3s ease;
         }
 
+.chapterlist {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 10px;
+}
+
+.chapterlist a {
+  flex: 0 0 auto;
+}
+
+        .chapterlist::-webkit-scrollbar {
+  height: 8px;
+}
+
+.chapterlist::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+        
         /* Loading Screen */
         .loading-screen {
             position: fixed;
