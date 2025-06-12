@@ -1,10 +1,12 @@
+
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velvet Nights</title>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velvet Nights</title>
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -39,28 +41,6 @@
             transition: all 0.3s ease;
         }
 
-.chapterlist {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  white-space: nowrap;
-  gap: 10px;
-}
-
-.chapterlist a {
-  flex: 0 0 auto;
-}
-
-        .chapterlist::-webkit-scrollbar {
-  height: 8px;
-}
-
-.chapterlist::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 4px;
-}
-
-        
         /* Loading Screen */
         .loading-screen {
             position: fixed;
@@ -471,75 +451,89 @@
             animation: fadeInUp 0.6s ease forwards;
         }
     </style>
-</head>
-<body data-theme="light">
-    <!-- Loading Screen -->
-    <div class="loading-screen" id="loading-screen">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading story...</div>
-        </div>
-    </div>
+<style>
+.chapterlist {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 10px;
+}
 
-    <!-- Error Screen -->
-    <div class="error-screen" id="error-screen">
-        <div class="error-content">
-            <div class="error-icon">⚠️</div>
-            <div class="error-title">Failed to Load Story</div>
-            <div class="error-message" id="error-message">
+.chapterlist a {
+  flex: 0 0 auto;
+}
+
+.chapterlist::-webkit-scrollbar {
+  height: 8px;
+}
+
+.chapterlist::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+</style></head>
+<body data-theme="light">
+<!-- Loading Screen -->
+<div class="loading-screen" id="loading-screen">
+<div class="loading-content">
+<div class="loading-spinner"></div>
+<div class="loading-text">Loading story...</div>
+</div>
+</div>
+<!-- Error Screen -->
+<div class="error-screen" id="error-screen">
+<div class="error-content">
+<div class="error-icon">⚠️</div>
+<div class="error-title">Failed to Load Story</div>
+<div class="error-message" id="error-message">
                 Could not load story data. Please check that the data file exists and is properly formatted.
             </div>
-            <button class="retry-btn" onclick="loadStoryData()">Try Again</button>
-            <button class="debug-btn" onclick="toggleDebugPanel()">Show Debug Info</button>
-        </div>
-    </div>
-
-    <!-- Debug Panel -->
-    <div class="debug-panel" id="debug-panel">
-        <div class="debug-title">Debug Information</div>
-        <div id="debug-content"></div>
-    </div>
-
-    <!-- Scroll Progress -->
-    <div class="scroll-progress">
-        <div class="scroll-progress-bar"></div>
-    </div>
-
-    <!-- Header -->
-    <header class="header">
-        <div class="nav-container">
-            <a href="#" class="logo" id="story-title">Story Reader</a>
-            <div class="nav-controls">
-                <nav class="chapter-nav" id="chapter-nav">
-                    <!-- Navigation will be auto-generated -->
-                </nav>
-                <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
-                <button class="debug-btn" onclick="toggleDebugPanel()" style="margin-left: 0.5rem; padding: 0.5rem 1rem; font-size: 0.8rem;">Debug</button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Story Info -->
-        <div class="chapter-info" id="story-info" style="display: none;">
-            <div class="chapter-count" id="chapter-count"></div>
-            <div class="story-progress">
-                <span>Progress:</span>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                <span id="progress-percent">0%</span>
-            </div>
-        </div>
-
-        <!-- Chapters Container -->
-        <div id="chapters-container">
-            <!-- Chapters will be dynamically generated here -->
-        </div>
-    </main>
-
-    <script>
+<button class="retry-btn" onclick="loadStoryData()">Try Again</button>
+<button class="debug-btn" onclick="toggleDebugPanel()">Show Debug Info</button>
+</div>
+</div>
+<!-- Debug Panel -->
+<div class="debug-panel" id="debug-panel">
+<div class="debug-title">Debug Information</div>
+<div id="debug-content"></div>
+</div>
+<!-- Scroll Progress -->
+<div class="scroll-progress">
+<div class="scroll-progress-bar"></div>
+</div>
+<!-- Header -->
+<header class="header">
+<div class="nav-container">
+<a class="logo" href="#" id="story-title">Story Reader</a>
+<div class="nav-controls">
+<nav class="chapter-nav" id="chapter-nav">
+<!-- Navigation will be auto-generated -->
+</nav>
+<button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+<button class="debug-btn" onclick="toggleDebugPanel()" style="margin-left: 0.5rem; padding: 0.5rem 1rem; font-size: 0.8rem;">Debug</button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="main-content">
+<!-- Story Info -->
+<div class="chapter-info" id="story-info" style="display: none;">
+<div class="chapter-count" id="chapter-count"></div>
+<div class="story-progress">
+<span>Progress:</span>
+<div class="progress-bar">
+<div class="progress-fill" id="progress-fill"></div>
+</div>
+<span id="progress-percent">0%</span>
+</div>
+</div>
+<!-- Chapters Container -->
+<div id="chapters-container">
+<!-- Chapters will be dynamically generated here -->
+</div>
+</main>
+<script>
         // Configuration - Change this to point to your JSON file
         const STORY_DATA_URL = 'story-data.json';
         
